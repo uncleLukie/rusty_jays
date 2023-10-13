@@ -12,8 +12,8 @@ impl DiscordPresence {
         let app_id_str = env::var("DISCORD_APP_ID").expect("DISCORD_APP_ID must be set");
         let app_id = app_id_str.parse::<u64>().expect("Failed to parse DISCORD_APP_ID to u64");
 
-        let mut client = DiscordClient::new(app_id)?;
-        client.start()?;
+        let mut client = DiscordClient::new(app_id);
+        client.start();
 
         Ok(Self { client })
     }
