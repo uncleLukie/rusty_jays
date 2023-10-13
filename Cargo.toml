@@ -27,3 +27,6 @@ serde_json = "1.0.107"
 
 # for threading
 rayon = "1.8.0"
+
+# super sekrit, no cred leaks pls
+dotenv = "0.15.0"

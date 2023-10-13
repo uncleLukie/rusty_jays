@@ -21,3 +21,6 @@ Cargo.lock
 #IDEs
 .idea/
 .vscode/
+
+# super sekrit stuff in here
+.env
