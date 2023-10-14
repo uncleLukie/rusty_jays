@@ -30,3 +30,6 @@ rayon = "1.8.0"
 
 # super sekrit, no cred leaks pls
 dotenv = "0.15.0"
+
+# we need chromedriver
+webdriver-downloader = "0.14.0"

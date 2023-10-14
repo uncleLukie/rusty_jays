@@ -9,28 +9,66 @@ mod utils;
 use std::error::Error;
 use song_fetcher::{WebAutomator, SongFetcher};
 use discord_presence::DiscordPresence;
+use tokio;
+use webdriver_downloader::prelude::*;
+use webdriver_downloader::driver_impls::chromedriver_info::ChromedriverInfo;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // load environment variables from .env file
+    // Load environment variables from .env file
     dotenv::dotenv().ok();
 
-    // initialise webautomator and discordpresence
-    let mut web_automator = WebAutomator::new().await?;
-    let mut discord_presence = DiscordPresence::new()?;
+    // Initialise and download chromedriver if it is not installed
+    let driver_info = ChromedriverInfo::new_default().unwrap();
+    if !driver_info.is_installed().await {
+        if let Err(e) = driver_info.download_verify_install(5).await {
+            eprintln!("Failed to download and install chromedriver: {}", e);
+            return Err(e.into());
+        }
+    }
 
-    // initialise songfetcher (replace 'your_url_here' with the actual url)
+    // Initialise WebAutomator
+    let web_automator_result = WebAutomator::new().await;
+    let mut web_automator = match web_automator_result {
+        Ok(web_automator) => web_automator,
+        Err(e) => {
+            eprintln!("Failed to initialise WebAutomator: {}", e);
+            return Err(e.into());
+        }
+    };
+
+    // Initialise DiscordPresence
+    let discord_presence_result = DiscordPresence::new();
+    let mut discord_presence = match discord_presence_result {
+        Ok(discord_presence) => discord_presence,
+        Err(e) => {
+            eprintln!("Failed to initialise DiscordPresence: {}", e);
+            return Err(e.into());
+        }
+    };
+
+    // Initialise SongFetcher (replace 'your_url_here' with the actual URL)
     let song_fetcher = SongFetcher::new("https://www.abc.net.au/triplej/live/triplej");
 
-    // infiniloop to keep updating da discord status
+    // Infinite loop to keep updating Discord status
     loop {
-        // fetch song info (title and artist)
-        let (song_title, song_artist) = song_fetcher.fetch_song_info().await?;
+        // Fetch song info (title and artist)
+        let fetch_result = song_fetcher.fetch_song_info().await;
+        let (song_title, song_artist) = match fetch_result {
+            Ok((title, artist)) => (title, artist),
+            Err(e) => {
+                eprintln!("Failed to fetch song info: {}", e);
+                return Err(e.into());
+            }
+        };
 
-        // update discord presence with the fetched song and artist information
-        discord_presence.update_status(&song_title, &song_artist)?;
+        // Update Discord presence with the fetched song and artist information
+        if let Err(e) = discord_presence.update_status(&song_title, &song_artist) {
+            eprintln!("Failed to update Discord presence: {}", e);
+            return Err(e.into());
+        }
 
-        // wait for some time before the next iteration (10 seconds)
+        // Wait for some time before the next iteration (10 seconds)
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     }
 }
