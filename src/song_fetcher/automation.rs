@@ -10,8 +10,8 @@ pub struct WebAutomator {
 impl WebAutomator {
     // create a new webautomator instance
     pub async fn new() -> Result<Self, WebDriverError> {
-        let caps = DesiredCapabilities::chrome();
-        let driver = WebDriver::new("http://localhost:4444/wd/hub", &caps).await?;
+        let caps: Capabilities = DesiredCapabilities::chrome().into();
+        let driver = WebDriver::new("http://localhost:4444/wd/hub", caps).await?;
 
         // set window size like in python code
         driver.execute("window.resizeTo(480, 640);", vec![]).await?;
