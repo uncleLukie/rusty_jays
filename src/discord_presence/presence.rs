@@ -1,4 +1,4 @@
-use discord_rpc_client::Client as DiscordClient;
+use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient, activity::Button};
 use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
@@ -22,30 +22,35 @@ impl Display for DiscordPresenceError {
 impl Error for DiscordPresenceError {}
 
 pub struct DiscordPresence {
-    client: DiscordClient,
+    client: DiscordIpcClient,
 }
 
 impl DiscordPresence {
     pub fn new() -> Result<Self, DiscordPresenceError> {
         let app_id_str = env::var("DISCORD_APP_ID").map_err(|_| DiscordPresenceError::InitializationError("DISCORD_APP_ID must be set".into()))?;
-        let app_id = app_id_str.parse::<u64>().map_err(|_| DiscordPresenceError::InitializationError("Failed to parse DISCORD_APP_ID to u64".into()))?;
-
-        let mut client = DiscordClient::new(app_id);
-        client.start();
+        let mut client = DiscordIpcClient::new(&app_id_str).map_err(|_| DiscordPresenceError::InitializationError("Failed to create Discord client".into()))?;
+        client.connect().map_err(|_| DiscordPresenceError::InitializationError("Failed to connect to Discord".into()))?;
 
         Ok(Self { client })
     }
 
     pub fn update_status(&mut self, song_title: &str, song_artist: &str) -> Result<(), DiscordPresenceError> {
+        // Create the Button object
+        let button = Button::new("GitHub Repo", "https://github.com/uncleLukie/rusty_jays");
+
+        // Fetch the large image key from the environment variables
         let large_image_key = env::var("LARGE_IMAGE_KEY").map_err(|_| DiscordPresenceError::UpdateStatusError("LARGE_IMAGE_KEY must be set".into()))?;
 
-        self.client
-            .set_activity(|act| {
-                act.state(song_title)
-                    .details(song_artist)
-                    .assets(|ass| ass.large_image(&large_image_key).large_text("Listening to music"))
-            })
-            .map_err(|_| DiscordPresenceError::UpdateStatusError("Failed to set activity".into()))?;
+        // Create the Assets object
+        let assets = activity::Assets::new().large_image(&large_image_key).large_text("Listening to music");
+
+        let payload = activity::Activity::new()
+            .state(song_title)
+            .details(song_artist)
+            .assets(assets)  // Use the Assets object
+            .buttons(vec![button]); // Add the Button object
+
+        self.client.set_activity(payload).map_err(|_| DiscordPresenceError::UpdateStatusError("Failed to set activity".into()))?;
 
         Ok(())
     }

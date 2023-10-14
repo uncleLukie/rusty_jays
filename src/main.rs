@@ -70,8 +70,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("Played Time: {}", info.played_time);
                 println!("Album: {}", info.album);
 
-                // Update Discord presence with the fetched song and artist information
-                discord_presence.update_status(&info.title, &info.artist).map_err(MyError::from)?;
+                // Update Discord presence with only the fetched song and artist information
+                match discord_presence.update_status(&info.title, &info.artist) {
+                    Ok(_) => println!("Successfully updated Discord status."),
+                    Err(e) => {
+                        eprintln!("Failed to update Discord status: {}", e);
+                        return Err(e.into());
+                    }
+                }
             }
             Err(e) => {
                 eprintln!("Error occurred: {}", e);
