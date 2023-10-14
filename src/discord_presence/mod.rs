@@ -1,3 +1,3 @@
-mod presence;
+pub mod presence;
 
-pub use presence::DiscordPresence;
+pub use presence::{DiscordPresence, DiscordPresenceError};

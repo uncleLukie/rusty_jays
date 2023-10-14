@@ -1,5 +1,2 @@
-mod automation;
-mod scraper;
-
-pub use automation::WebAutomator;
-pub use scraper::SongFetcher;
+pub mod fetcher;
+pub use fetcher::fetch_current_song;

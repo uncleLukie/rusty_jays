@@ -7,19 +7,13 @@ edition = "2021"
 
 [dependencies]
 # http client for webscraping
-reqwest = { version = "0.11.22", features = [] }
-
-# html parsing library for scraping
-scraper = "0.17.1"
-
-# selenium webdriver for Rust
-thirtyfour = "0.31.0"
+reqwest = { version = "0.11.22", features = ["json", "tokio-native-tls"] }
 
 # discord rich presence client
 discord-rpc-client = "0.3.0"
 
 # for asynchronous programming
-tokio = "1.33.0"
+tokio = { version = "1.33.0", features = ["full"] }
 
 # for JSON serialisation/deserilisation
 serde = { version = "1.0.189", features = ["derive"] }
@@ -30,6 +24,3 @@ rayon = "1.8.0"
 
 # super sekrit, no cred leaks pls
 dotenv = "0.15.0"
-
-# we need chromedriver
-webdriver-downloader = "0.14.0"
