@@ -1,4 +1,3 @@
-use std::env;
 use std::error::Error;
 use std::fmt::{self, Display};
 
@@ -43,7 +42,7 @@ impl From<reqwest::Error> for MyError {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() {
     dotenv::dotenv().ok();
 
     let discord_presence_result = DiscordPresence::new().map_err(MyError::from);
@@ -51,8 +50,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Ok(dp) => dp,
         Err(e) => {
             eprintln!("Failed to initialise DiscordPresence: {:?}", e);
-            return Err(e.into());
-        }
+            return;
+        },
     };
 
     loop {
@@ -71,20 +70,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("Played Time: {}", played_time);
                 println!("Album: {}", info.album.as_deref().unwrap_or("N/A"));
 
-                if let Err(e) = discord_presence.update_status(title, artist, played_time) {
-                    eprintln!("Failed to update Discord status: {}", e);
-                }
-            }
+                update_discord_status(&mut discord_presence, title, artist, played_time);
+            },
             Err(e) => {
                 eprintln!("Error occurred: {}", e);
-
-                // Fallback to a default status
-                if let Err(e) = discord_presence.update_status("Listening to the jays", "", "") {
-                    eprintln!("Failed to set fallback Discord status: {}", e);
-                }
-            }
+                update_discord_status(&mut discord_presence, "N/A", "N/A", "N/A");
+            },
         }
 
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
     }
 }
+
+fn update_discord_status(discord_presence: &mut DiscordPresence, title: &str, artist: &str, played_time: &str) {
+    println!("Updating Discord status...");  // Debug print
+
+    if title == "N/A" {
+        println!("Title is N/A. Setting to 'Listening to the jays'");  // Debug print
+        let test_timestamp = "2023-10-15T01:11:51+00:00"; // Replace this with a valid RFC3339 timestamp a few minutes in the past
+        if let Err(e) = discord_presence.update_status("Listening to the jays", "", test_timestamp) {
+            eprintln!("Failed to set fallback Discord status: {}", e);
+        }
+    } else {
+        println!("Setting title to '{}', artist to '{}'", title, artist);  // Debug print
+        if let Err(e) = discord_presence.update_status(title, artist, played_time) {
+            eprintln!("Failed to update Discord status: {}", e);
+        }
+    }
+}
+

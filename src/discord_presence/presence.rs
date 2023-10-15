@@ -26,6 +26,7 @@ impl Error for DiscordPresenceError {}
 
 pub struct DiscordPresence {
     client: DiscordIpcClient,
+    app_start_time: i64,  // Unix timestamp for when the app started
 }
 
 impl DiscordPresence {
@@ -34,13 +35,17 @@ impl DiscordPresence {
         let mut client = DiscordIpcClient::new(&app_id_str).map_err(|_| DiscordPresenceError::InitializationError("Failed to create Discord client".into()))?;
         client.connect().map_err(|_| DiscordPresenceError::InitializationError("Failed to connect to Discord".into()))?;
 
-        Ok(Self { client })
+        let app_start_time = Utc::now().timestamp();  // Record the time the app started
+
+        Ok(Self { client, app_start_time })
     }
 
     pub fn update_status(&mut self, song_title: &str, song_artist: &str, played_time: &str) -> Result<(), DiscordPresenceError> {
-        // Convert played_time to Unix timestamp
-        let dt = DateTime::parse_from_rfc3339(played_time).map_err(|_| DiscordPresenceError::UpdateStatusError("Invalid played_time format".into()))?;
-        let unix_timestamp = dt.timestamp();
+        let unix_timestamp = if played_time == "N/A" {
+            self.app_start_time  // Use the time the app started as the fallback
+        } else {
+            DateTime::parse_from_rfc3339(played_time).map(|dt| dt.timestamp()).map_err(|_| DiscordPresenceError::UpdateStatusError("Invalid played_time format".into()))?
+        };
 
         // Create the Button object
         let button = Button::new("GitHub Repo", "https://github.com/uncleLukie/rusty_jays");
