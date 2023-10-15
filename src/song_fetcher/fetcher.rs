@@ -33,29 +33,44 @@ struct Prev {
     played_time: String,
 }
 
+// New struct for Now
+#[derive(Debug, Deserialize)]
+struct Now {
+    recording: Option<Recording>,
+    releases: Option<Vec<Releases>>,
+    #[serde(rename = "played_time")]
+    played_time: String,
+}
+
 #[derive(Debug, Deserialize)]
 struct ApiResponse {
     prev: Prev,
+    now: Now,  // Added now field
 }
 
 pub async fn fetch_current_song() -> Result<Song, Error> {
     let url = "https://music.abcradio.net.au/api/v1/plays/triplej/now.json?tz=Australia%2FSydney";
     let resp: ApiResponse = reqwest::get(url).await?.json().await?;
 
-    let artist = match resp.prev.recording.artists.get(0) {
-        Some(artist_data) => artist_data.name.clone(),
-        None => "Unknown Artist".to_string(),
-    };
-
-    let album = match &resp.prev.releases {
-        Some(releases) => releases.get(0).map_or("Unknown Album".to_string(), |r| r.title.clone()),
-        None => "Unknown Album".to_string(),
+    let (title, artist, album) = if let Some(recording) = &resp.now.recording {
+        let title = recording.title.clone();
+        let artist = match recording.artists.get(0) {
+            Some(artist_data) => artist_data.name.clone(),
+            None => "Unknown Artist".to_string(),
+        };
+        let album = match &resp.now.releases {
+            Some(releases) => releases.get(0).map_or("Unknown Album".to_string(), |r| r.title.clone()),
+            None => "Unknown Album".to_string(),
+        };
+        (title, artist, album)
+    } else {
+        ("No current song".to_string(), "N/A".to_string(), "N/A".to_string())
     };
 
     Ok(Song {
-        title: resp.prev.recording.title,
+        title,
         artist,
-        played_time: resp.prev.played_time,
+        played_time: resp.now.played_time,
         album,
     })
 }
