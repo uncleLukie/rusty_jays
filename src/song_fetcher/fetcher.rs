@@ -3,10 +3,10 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Song {
-    pub title: String,
-    pub artist: String,
-    pub played_time: String,
-    pub album: String,
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub played_time: Option<String>,
+    pub album: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,52 +25,35 @@ struct Releases {
     title: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct Prev {
-    recording: Recording,
-    releases: Option<Vec<Releases>>,
-    #[serde(rename = "played_time")]
-    played_time: String,
-}
+// Removed Prev struct
 
-// New struct for Now
+// Updated Now struct
 #[derive(Debug, Deserialize)]
 struct Now {
     recording: Option<Recording>,
     releases: Option<Vec<Releases>>,
     #[serde(rename = "played_time")]
-    played_time: String,
+    played_time: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ApiResponse {
-    prev: Prev,
-    now: Now,  // Added now field
+    now: Now,  // Removed prev field
 }
 
 pub async fn fetch_current_song() -> Result<Song, Error> {
     let url = "https://music.abcradio.net.au/api/v1/plays/triplej/now.json?tz=Australia%2FSydney";
     let resp: ApiResponse = reqwest::get(url).await?.json().await?;
 
-    let (title, artist, album) = if let Some(recording) = &resp.now.recording {
-        let title = recording.title.clone();
-        let artist = match recording.artists.get(0) {
-            Some(artist_data) => artist_data.name.clone(),
-            None => "Unknown Artist".to_string(),
-        };
-        let album = match &resp.now.releases {
-            Some(releases) => releases.get(0).map_or("Unknown Album".to_string(), |r| r.title.clone()),
-            None => "Unknown Album".to_string(),
-        };
-        (title, artist, album)
-    } else {
-        ("No current song".to_string(), "N/A".to_string(), "N/A".to_string())
-    };
+    let title = resp.now.recording.as_ref().map(|r| r.title.clone());
+    let artist = resp.now.recording.as_ref().and_then(|r| r.artists.get(0)).map(|a| a.name.clone());
+    let album = resp.now.releases.as_ref().and_then(|r| r.get(0)).map(|r| r.title.clone());
+    let played_time = resp.now.played_time.clone();
 
     Ok(Song {
         title,
         artist,
-        played_time: resp.now.played_time,
+        played_time,
         album,
     })
 }
