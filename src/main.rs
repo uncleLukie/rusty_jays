@@ -9,7 +9,7 @@ use tokio;
 mod discord_presence;
 mod song_fetcher;
 
-use song_fetcher::fetch_current_song; // Update this import
+use song_fetcher::fetch_current_song;
 use discord_presence::DiscordPresence;
 
 // Custom error enum
@@ -70,8 +70,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("Played Time: {}", info.played_time);
                 println!("Album: {}", info.album);
 
-                // Update Discord presence with only the fetched song and artist information
-                match discord_presence.update_status(&info.title, &info.artist) {
+                // Update Discord presence with the fetched song, artist, and played_time information
+                match discord_presence.update_status(&info.title, &info.artist, &info.played_time) {
                     Ok(_) => println!("Successfully updated Discord status."),
                     Err(e) => {
                         eprintln!("Failed to update Discord status: {}", e);

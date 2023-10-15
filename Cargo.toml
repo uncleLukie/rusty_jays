@@ -25,3 +25,5 @@ rayon = "1.8.0"
 # super sekrit, no cred leaks pls
 dotenv = "0.15.0"
 
+# datetime stuff
+chrono = "0.4.31"

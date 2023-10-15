@@ -1,7 +1,10 @@
-use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient, activity::Button};
+use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient, activity::Button, activity::Timestamps};
 use std::env;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
+
+extern crate chrono;
+use chrono::prelude::*;
 
 // Custom error type for DiscordPresence
 #[derive(Debug)]
@@ -34,9 +37,16 @@ impl DiscordPresence {
         Ok(Self { client })
     }
 
-    pub fn update_status(&mut self, song_title: &str, song_artist: &str) -> Result<(), DiscordPresenceError> {
+    pub fn update_status(&mut self, song_title: &str, song_artist: &str, played_time: &str) -> Result<(), DiscordPresenceError> {
+        // Convert played_time to Unix timestamp
+        let dt = DateTime::parse_from_rfc3339(played_time).map_err(|_| DiscordPresenceError::UpdateStatusError("Invalid played_time format".into()))?;
+        let unix_timestamp = dt.timestamp();
+
         // Create the Button object
         let button = Button::new("GitHub Repo", "https://github.com/uncleLukie/rusty_jays");
+
+        // Create the Timestamps object
+        let timestamps = Timestamps::new().start(unix_timestamp);
 
         // Fetch the large image key from the environment variables
         let large_image_key = env::var("LARGE_IMAGE_KEY").map_err(|_| DiscordPresenceError::UpdateStatusError("LARGE_IMAGE_KEY must be set".into()))?;
@@ -48,7 +58,8 @@ impl DiscordPresence {
             .state(song_title)
             .details(song_artist)
             .assets(assets)  // Use the Assets object
-            .buttons(vec![button]); // Add the Button object
+            .buttons(vec![button])  // Add the Button object
+            .timestamps(timestamps); // Add the Timestamps object
 
         self.client.set_activity(payload).map_err(|_| DiscordPresenceError::UpdateStatusError("Failed to set activity".into()))?;
 
